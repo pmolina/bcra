@@ -12,7 +12,7 @@ export function CUITInput({ onSubmit, loading }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = parseCuits(value);
+    const parsed = [...new Set(parseCuits(value))];
     const errs: string[] = [];
 
     if (parsed.length === 0) {
