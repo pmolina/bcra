@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { ResultState } from './types/bcra';
-import { fetchDebtHistory } from './api/bcra';
+import type { ResultState, ChequesState } from './types/bcra';
+import { fetchDebtHistory, fetchRejectedChecks } from './api/bcra';
 import { CUITInput } from './components/CUITInput';
 import { ResultCard } from './components/ResultCard';
 
@@ -41,22 +41,29 @@ export default function App() {
   }, [dark]);
 
   const [results, setResults] = useState<Map<string, ResultState>>(new Map());
+  const [checksResults, setChecksResults] = useState<Map<string, ChequesState>>(new Map());
   const [activeCuits, setActiveCuits] = useState<string[]>([]);
-  const loading = [...results.values()].some(r => r.status === 'loading');
+
+  const loading = [...results.values()].some(r => r.status === 'loading')
+    || [...checksResults.values()].some(r => r.status === 'loading');
 
   async function handleSubmit(cuits: string[]) {
     setActiveCuits(cuits);
 
-    const initial = new Map<string, ResultState>(
-      cuits.map(c => [c, { status: 'loading' }])
-    );
-    setResults(initial);
+    const loadingDebt = new Map<string, ResultState>(cuits.map(c => [c, { status: 'loading' }]));
+    const loadingChecks = new Map<string, ChequesState>(cuits.map(c => [c, { status: 'loading' }]));
+    setResults(loadingDebt);
+    setChecksResults(loadingChecks);
 
-    const settled = await Promise.allSettled(cuits.map(c => fetchDebtHistory(c)));
+    // Fetch debt history and rejected checks in parallel for all CUITs
+    const [debtSettled, checksSettled] = await Promise.all([
+      Promise.allSettled(cuits.map(c => fetchDebtHistory(c))),
+      Promise.allSettled(cuits.map(c => fetchRejectedChecks(c))),
+    ]);
 
-    setResults(prev => {
-      const next = new Map(prev);
-      settled.forEach((result, i) => {
+    setResults(() => {
+      const next = new Map<string, ResultState>();
+      debtSettled.forEach((result, i) => {
         const cuit = cuits[i]!;
         if (result.status === 'fulfilled') {
           const data = result.value.results;
@@ -66,14 +73,27 @@ export default function App() {
             next.set(cuit, { status: 'success', data });
           }
         } else {
-          const msg = result.reason instanceof Error
-            ? result.reason.message
-            : 'Error desconocido';
-          if (msg.includes('sin deuda')) {
+          const msg = result.reason instanceof Error ? result.reason.message : 'Error desconocido';
+          next.set(cuit, msg.includes('sin deuda') ? { status: 'empty' } : { status: 'error', message: msg });
+        }
+      });
+      return next;
+    });
+
+    setChecksResults(() => {
+      const next = new Map<string, ChequesState>();
+      checksSettled.forEach((result, i) => {
+        const cuit = cuits[i]!;
+        if (result.status === 'fulfilled') {
+          const data = result.value.results;
+          if (!data || data.causales.length === 0) {
             next.set(cuit, { status: 'empty' });
           } else {
-            next.set(cuit, { status: 'error', message: msg });
+            next.set(cuit, { status: 'success', data });
           }
+        } else {
+          const msg = result.reason instanceof Error ? result.reason.message : 'Error desconocido';
+          next.set(cuit, msg.includes('sin cheques') ? { status: 'empty' } : { status: 'error', message: msg });
         }
       });
       return next;
@@ -83,7 +103,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
       <div className="max-w-4xl mx-auto px-4 py-10">
-        {/* Header */}
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -102,21 +121,23 @@ export default function App() {
           </button>
         </header>
 
-        {/* Input */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 mb-8">
           <CUITInput onSubmit={handleSubmit} loading={loading} />
         </div>
 
-        {/* Results */}
         {activeCuits.length > 0 && (
           <div className="space-y-5">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Resultados ({activeCuits.length} CUIT{activeCuits.length !== 1 ? 's' : ''})
             </h2>
-            {activeCuits.map(cuit => {
-              const state = results.get(cuit) ?? { status: 'loading' };
-              return <ResultCard key={cuit} cuit={cuit} state={state} />;
-            })}
+            {activeCuits.map(cuit => (
+              <ResultCard
+                key={cuit}
+                cuit={cuit}
+                state={results.get(cuit) ?? { status: 'loading' }}
+                checksState={checksResults.get(cuit) ?? { status: 'loading' }}
+              />
+            ))}
           </div>
         )}
       </div>

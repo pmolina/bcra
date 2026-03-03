@@ -27,3 +27,44 @@ export type ResultState =
   | { status: 'success'; data: BCRAResult }
   | { status: 'error'; message: string }
   | { status: 'empty' };
+
+// Cheques rechazados
+export interface ChequeDetalle {
+  nroCheque: number;
+  fechaRechazo: string;   // "2024-09-17"
+  monto: number;          // AR$ face value
+  fechaPago: string | null;
+  fechaPagoMulta: string | null;
+  estadoMulta: string;
+  ctaPersonal: boolean;
+  denomJuridica: string;
+  enRevision: boolean;
+  procesoJud: boolean;
+}
+
+export interface ChequeEntidad {
+  entidad: number;        // bank code
+  detalle: ChequeDetalle[];
+}
+
+export interface ChequeCausal {
+  causal: string;
+  entidades: ChequeEntidad[];
+}
+
+export interface ChequesResult {
+  identificacion: number;
+  denominacion: string;
+  causales: ChequeCausal[];
+}
+
+export interface ChequesResponse {
+  status: number;
+  results: ChequesResult;
+}
+
+export type ChequesState =
+  | { status: 'loading' }
+  | { status: 'success'; data: ChequesResult }
+  | { status: 'error'; message: string }
+  | { status: 'empty' };
