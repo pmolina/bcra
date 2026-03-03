@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -52,13 +52,24 @@ function CustomTooltip({ active, payload, label }: {
     .filter(item => item.value > 0)
     .sort((a, b) => b.value - a.value);
 
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+
+  // Group total debt by situation number
+  const sitTotals = new Map<number, number>();
+  for (const item of items) {
+    const sit = situations?.get(item.name) ?? 1;
+    sitTotals.set(sit, (sitTotals.get(sit) ?? 0) + item.value);
+  }
+  const sitEntries = Array.from(sitTotals.entries()).sort((a, b) => a[0] - b[0]);
+
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs max-w-72">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs max-w-80">
       <p className="font-semibold text-gray-700 dark:text-gray-200 mb-2">{label}</p>
       <div className="space-y-1.5">
         {items.map(item => {
           const situation = situations?.get(item.name) ?? 1;
           const irregular = situation >= 2;
+          const pct = total > 0 ? ((item.value / total) * 100).toFixed(2) : '0.00';
           return (
             <div key={item.name} className="flex items-center gap-2">
               <span
@@ -68,8 +79,9 @@ function CustomTooltip({ active, payload, label }: {
               <span className="flex-1 truncate text-gray-700 dark:text-gray-300 min-w-0">
                 {item.name}
               </span>
-              <span className="font-medium text-gray-900 dark:text-gray-100 shrink-0">
-                {formatARS(item.value)}
+              <span className="shrink-0 text-right">
+                <span className="font-medium text-gray-900 dark:text-gray-100">{formatARS(item.value)}</span>
+                <span className="text-gray-400 dark:text-gray-500 ml-1">({pct}%)</span>
               </span>
               <span className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${situacionClass(situation)}`}>
                 Sit. {situation}
@@ -90,6 +102,34 @@ function CustomTooltip({ active, payload, label }: {
           );
         })}
       </div>
+
+      {/* Total row */}
+      <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+        <span className="font-semibold text-gray-700 dark:text-gray-200">Total</span>
+        <span className="font-semibold text-gray-900 dark:text-gray-100">{formatARS(total)}</span>
+      </div>
+
+      {/* Per-situation breakdown (only when there are multiple situations) */}
+      {sitEntries.length > 1 && (
+        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 space-y-1">
+          <p className="text-gray-400 dark:text-gray-500 mb-1.5">Por situación</p>
+          {sitEntries.map(([sit, amount]) => {
+            const pct = total > 0 ? ((amount / total) * 100).toFixed(2) : '0.00';
+            return (
+              <div key={sit} className="flex items-center gap-2">
+                <span className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${situacionClass(sit)}`}>
+                  Sit. {sit}
+                </span>
+                <span className="flex-1" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  {formatARS(amount)}
+                  <span className="text-gray-400 dark:text-gray-500 ml-1">({pct}%)</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -127,7 +167,22 @@ function makeBarShape(entityName: string) {
   };
 }
 
+interface MobileTooltipData {
+  label: string;
+  payload: TooltipPayloadItem[];
+}
+
 export function DebtChart({ periodos }: Props) {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const [mobileTooltip, setMobileTooltip] = useState<MobileTooltipData | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const sorted = [...periodos].sort((a, b) => a.periodo.localeCompare(b.periodo));
 
   const entityTotals = new Map<string, number>();
@@ -157,37 +212,58 @@ export function DebtChart({ periodos }: Props) {
 
   const chartHeight = Math.max(280, Math.min(700, entityNames.length * 22 + 140));
 
+  function handleChartClick(data: unknown) {
+    if (!isMobile) return;
+    const d = data as { activeLabel?: string; activePayload?: TooltipPayloadItem[] };
+    if (d.activeLabel && d.activePayload?.length) {
+      setMobileTooltip({ label: d.activeLabel, payload: d.activePayload });
+    }
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={chartHeight}>
-      <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
-        <XAxis
-          dataKey="period"
-          tick={{ fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          tickFormatter={formatARS}
-          tick={{ fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-          width={60}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        {entityNames.length > 1 && (
-          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-        )}
-        {entityNames.map(name => (
-          <Bar
-            key={name}
-            dataKey={name}
-            stackId="a"
-            fill={getEntityColor(name)}
-            shape={makeBarShape(name)}
+    <>
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} onClick={handleChartClick}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
+          <XAxis
+            dataKey="period"
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
           />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+          <YAxis
+            tickFormatter={formatARS}
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            width={60}
+          />
+          <Tooltip content={isMobile ? () => null : <CustomTooltip />} cursor={{ fill: 'transparent' }} />
+          {entityNames.length > 1 && (
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+          )}
+          {entityNames.map(name => (
+            <Bar
+              key={name}
+              dataKey={name}
+              stackId="a"
+              fill={getEntityColor(name)}
+              shape={makeBarShape(name)}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+
+      {mobileTooltip && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50"
+          onClick={() => setMobileTooltip(null)}
+        >
+          <div onClick={e => e.stopPropagation()}>
+            <CustomTooltip active={true} payload={mobileTooltip.payload} label={mobileTooltip.label} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -91,11 +91,11 @@ export function ResultCard({ cuit, state, checksState }: Props) {
         </div>
         <div className="flex items-center gap-2">
           {hasIrregularLastPeriod ? (
-            <span className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full">
+            <span className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full whitespace-nowrap">
               Situación irregular
             </span>
           ) : state.status === 'success' ? (
-            <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">
+            <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full whitespace-nowrap">
               Situación normal
             </span>
           ) : null}
