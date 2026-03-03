@@ -24,6 +24,76 @@ function formatARS(value: number): string {
   return `$${value}`;
 }
 
+// Situation badge colors
+function situacionClass(sit: number): string {
+  if (sit >= 4) return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400';
+  if (sit >= 2) return 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400';
+  return 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
+}
+
+interface TooltipPayloadItem {
+  name: string;
+  value: number;
+  fill: string;
+  payload: Record<string, unknown>;
+}
+
+function CustomTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const situations = payload[0]?.payload._situations as Map<string, number> | undefined;
+
+  // Show only entries with actual debt in this period, sorted largest first
+  const items = payload
+    .filter(item => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs max-w-72">
+      <p className="font-semibold text-gray-700 dark:text-gray-200 mb-2">{label}</p>
+      <div className="space-y-1.5">
+        {items.map(item => {
+          const situation = situations?.get(item.name) ?? 1;
+          const irregular = situation >= 2;
+          return (
+            <div key={item.name} className="flex items-center gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-sm shrink-0"
+                style={{ backgroundColor: item.fill }}
+              />
+              <span className="flex-1 truncate text-gray-700 dark:text-gray-300 min-w-0">
+                {item.name}
+              </span>
+              <span className="font-medium text-gray-900 dark:text-gray-100 shrink-0">
+                {formatARS(item.value)}
+              </span>
+              <span className={`shrink-0 px-1.5 py-0.5 rounded font-medium ${situacionClass(situation)}`}>
+                Sit. {situation}
+              </span>
+              {irregular && (
+                <svg
+                  className="shrink-0 text-red-500"
+                  width="13" height="13" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2.5"
+                  strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface BarShapeProps {
   x?: number;
   y?: number;
@@ -58,11 +128,8 @@ function makeBarShape(entityName: string) {
 }
 
 export function DebtChart({ periodos }: Props) {
-  // Sort old→new
   const sorted = [...periodos].sort((a, b) => a.periodo.localeCompare(b.periodo));
 
-  // Collect total debt per entity across all periods, then sort largest→smallest
-  // (first in array = bottom of stack in Recharts)
   const entityTotals = new Map<string, number>();
   for (const p of sorted) {
     for (const e of p.entidades) {
@@ -73,15 +140,18 @@ export function DebtChart({ periodos }: Props) {
     (a, b) => (entityTotals.get(b) ?? 0) - (entityTotals.get(a) ?? 0)
   );
 
-  // Build chart data — track which entities have situacion >= 2 per period
   const chartData = sorted.map(p => {
     const row: Record<string, unknown> = { period: formatPeriod(p.periodo) };
     const problemEntities = new Set<string>();
+    const situations = new Map<string, number>();
     for (const e of p.entidades) {
       row[e.entidad] = ((row[e.entidad] as number) || 0) + e.monto * 1000;
       if (e.situacion >= 2) problemEntities.add(e.entidad);
+      // Keep the worst (highest) situation if entity appears multiple times
+      situations.set(e.entidad, Math.max(situations.get(e.entidad) ?? 0, e.situacion));
     }
     row._problemEntities = problemEntities;
+    row._situations = situations;
     return row;
   });
 
@@ -104,14 +174,7 @@ export function DebtChart({ periodos }: Props) {
           axisLine={false}
           width={60}
         />
-        <Tooltip
-          formatter={(value: number, name: string) => [formatARS(value), name]}
-          contentStyle={{
-            fontSize: 12,
-            borderRadius: 8,
-            border: '1px solid rgba(128,128,128,0.2)',
-          }}
-        />
+        <Tooltip content={<CustomTooltip />} />
         {entityNames.length > 1 && (
           <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
         )}
