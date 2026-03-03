@@ -3,6 +3,24 @@ import type { ResultState, ChequesState } from '../types/bcra';
 import { DebtChart } from './DebtChart';
 import { ChecksTable } from './ChecksTable';
 
+function ShareIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+      <polyline points="16 6 12 2 8 6"/>
+      <line x1="12" y1="2" x2="12" y2="15"/>
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
 interface Props {
   cuit: string;
   state: ResultState;
@@ -29,6 +47,15 @@ function Spinner() {
 
 export function ResultCard({ cuit, state, checksState }: Props) {
   const [tab, setTab] = useState<Tab>('deudas');
+  const [copied, setCopied] = useState(false);
+
+  function handleShare() {
+    const url = `${window.location.origin}${window.location.pathname}?cuit=${cuit}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const denominacion =
     state.status === 'success' ? state.data.denominacion :
@@ -62,15 +89,28 @@ export function ResultCard({ cuit, state, checksState }: Props) {
             </p>
           )}
         </div>
-        {hasIrregularLastPeriod ? (
-          <span className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full">
-            Situación irregular
-          </span>
-        ) : state.status === 'success' ? (
-          <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">
-            Situación normal
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {hasIrregularLastPeriod ? (
+            <span className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full">
+              Situación irregular
+            </span>
+          ) : state.status === 'success' ? (
+            <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">
+              Situación normal
+            </span>
+          ) : null}
+          <button
+            onClick={handleShare}
+            title="Copiar enlace con este CUIT"
+            className={`p-1.5 rounded-lg border transition-colors ${
+              copied
+                ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
+            }`}
+          >
+            {copied ? <CheckIcon /> : <ShareIcon />}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

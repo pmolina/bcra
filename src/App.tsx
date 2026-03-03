@@ -32,7 +32,7 @@ export default function App() {
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return true;
   });
 
   useEffect(() => {
@@ -44,8 +44,23 @@ export default function App() {
   const [checksResults, setChecksResults] = useState<Map<string, ChequesState>>(new Map());
   const [activeCuits, setActiveCuits] = useState<string[]>([]);
 
+  const [initialInputValue] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cuit = params.get('cuit');
+    return cuit ? cuit.split(',').join('\n') : '';
+  });
+
   const loading = [...results.values()].some(r => r.status === 'loading')
     || [...checksResults.values()].some(r => r.status === 'loading');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cuit = params.get('cuit');
+    if (cuit) {
+      const cuits = cuit.split(',').map(c => c.replace(/-/g, '').trim()).filter(Boolean);
+      if (cuits.length > 0) handleSubmit(cuits);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(cuits: string[]) {
     setActiveCuits(cuits);
@@ -106,10 +121,10 @@ export default function App() {
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              BCRA — Central de Deudores
+              Central de Deudores del BCRA
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Consultá el historial de deudas por CUIT. Las columnas en rojo indican situación crediticia irregular (≥ 2).
+              Consultá el historial de deudas por CUIL/CUIT.
             </p>
           </div>
           <button
@@ -122,7 +137,7 @@ export default function App() {
         </header>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 mb-8">
-          <CUITInput onSubmit={handleSubmit} loading={loading} />
+          <CUITInput onSubmit={handleSubmit} loading={loading} initialValue={initialInputValue} />
         </div>
 
         {activeCuits.length > 0 && (

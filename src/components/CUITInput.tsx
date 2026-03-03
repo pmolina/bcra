@@ -4,10 +4,11 @@ import { parseCuits, validateCuit } from '../utils/cuit';
 interface Props {
   onSubmit: (cuits: string[]) => void;
   loading: boolean;
+  initialValue?: string;
 }
 
-export function CUITInput({ onSubmit, loading }: Props) {
-  const [value, setValue] = useState('');
+export function CUITInput({ onSubmit, loading, initialValue = '' }: Props) {
+  const [value, setValue] = useState(initialValue);
   const [errors, setErrors] = useState<string[]>([]);
 
   function handleSubmit(e: React.FormEvent) {
