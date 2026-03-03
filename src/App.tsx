@@ -28,12 +28,55 @@ function MoonIcon() {
   );
 }
 
+const STATUS_CUIT = '30546676427';
+
+type ApiStatus = 'checking' | 'ok' | 'error';
+
+function ApiStatusPill({ status }: { status: ApiStatus }) {
+  const label = status === 'checking' ? 'Verificando...' : status === 'ok' ? 'API operativa' : 'API con errores';
+  const dot =
+    status === 'checking'
+      ? 'bg-yellow-400 animate-pulse'
+      : status === 'ok'
+      ? 'bg-green-400'
+      : 'bg-red-500';
+  const pill =
+    status === 'checking'
+      ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
+      : status === 'ok'
+      ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+      : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${pill}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+      {label}
+    </span>
+  );
+}
+
 export default function App() {
   const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
     return true;
   });
+
+  const [apiStatus, setApiStatus] = useState<ApiStatus>('checking');
+
+  useEffect(() => {
+    async function checkApi() {
+      try {
+        const res = await fetch(`https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas/Historicas/${STATUS_CUIT}`);
+        setApiStatus(res.ok || res.status === 404 ? 'ok' : 'error');
+      } catch {
+        setApiStatus('error');
+      }
+    }
+    checkApi();
+    const interval = setInterval(checkApi, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -120,9 +163,12 @@ export default function App() {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Central de Deudores del BCRA
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Central de Deudores del BCRA
+              </h1>
+              <ApiStatusPill status={apiStatus} />
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Consultá el historial de deudas por CUIL/CUIT.
             </p>
