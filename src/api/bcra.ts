@@ -4,14 +4,14 @@ const BASE = 'https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas';
 
 export async function fetchDebtHistory(cuit: string): Promise<BCRAResponse> {
   const res = await fetch(`${BASE}/Historicas/${cuit}`);
-  if (res.status === 404) throw new Error('CUIT sin deuda registrada');
+  if (res.status === 404) throw new Error('CUIT no encontrado en el sistema del BCRA');
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json() as Promise<BCRAResponse>;
 }
 
 export async function fetchRejectedChecks(cuit: string): Promise<ChequesResponse> {
   const res = await fetch(`${BASE}/ChequesRechazados/${cuit}`);
-  if (res.status === 404) throw new Error('CUIT sin cheques rechazados');
+  if (res.status === 404) throw new Error('CUIT no encontrado en el sistema del BCRA');
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json() as Promise<ChequesResponse>;
 }

@@ -166,6 +166,8 @@ export default function App() {
     cuits.forEach((cuit, i) => {
       const debt = debtSettled[i];
       const checks = checksSettled[i];
+      const bothFailed = debt?.status === 'rejected' && checks?.status === 'rejected';
+      if (bothFailed) return;
       const denominacion =
         (debt?.status === 'fulfilled' && debt.value.results?.denominacion) ||
         (checks?.status === 'fulfilled' && checks.value.results?.denominacion) ||
