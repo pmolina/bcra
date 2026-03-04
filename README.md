@@ -5,22 +5,24 @@
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Recharts](https://img.shields.io/badge/Recharts-2-22b5bf)
-[![Live demo](https://img.shields.io/badge/Live_demo-GitHub_Pages-181717?logo=github)](https://pmolina.github.io/bcra/)
+[![Live demo](https://img.shields.io/badge/Live-deudas.ar-181717?logo=github)](https://deudas.ar/)
 
-Look up the debt history of up to 10 Argentine CUITs using the [BCRA Central de Deudores](https://www.bcra.gob.ar/BCRAyVos/Sistemas_de_informacion_u_operativos.asp) public API.
+Look up the debt history of an Argentine CUIT using the [BCRA Central de Deudores](https://www.bcra.gob.ar/BCRAyVos/Sistemas_de_informacion_u_operativos.asp) public API.
 
 ## Features
 
-- Enter up to 10 CUITs (with or without dashes)
+- Single CUIT lookup (with or without dashes)
 - Check digit validation using the official AFIP algorithm
-- Parallel requests to the BCRA public API
-- Stacked bar chart per CUIT showing debt by entity and period
-- Bars with irregular credit status (≥ 2) show a red line on their right edge
-- The status badge reflects only the most recent reported period
-- Rejected checks table per CUIT
-- Warning badges for irregular debt situations
-- Shareable URLs per CUIT — clicking the share button copies a `?cuit=` link to the clipboard; opening a shared URL pre-fills the input and runs the query automatically
+- Stacked bar chart showing debt by entity and period
+  - Toggle individual entities on/off
+  - Bars with irregular credit status (≥ 2) show a red line on their right edge
+  - Hover tooltip with per-entity amount, percentage, and situation breakdown
+  - On mobile, tap a bar to show a centered tooltip
+- Rejected checks table
+- API status indicator
+- Shareable URL — the share button copies a `?cuit=` link to the clipboard; opening a shared link pre-fills and runs the query automatically
 - Dark mode by default, with light mode toggle and `localStorage` persistence
+- Social media preview cards (Open Graph + Twitter Card)
 
 ## Tech stack
 
