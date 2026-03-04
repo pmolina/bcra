@@ -213,7 +213,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
+    <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
       <div className="max-w-4xl mx-auto px-4 py-10">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
