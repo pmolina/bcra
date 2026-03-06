@@ -20,12 +20,10 @@ const PALETTE = [
   '#3B3EAC',
 ];
 
-function hashStr(s: string): number {
-  let h = 0;
-  for (const c of s) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0;
-  return Math.abs(h);
-}
-
-export function getEntityColor(name: string): string {
-  return PALETTE[hashStr(name) % PALETTE.length]!;
+export function buildColorMap(names: string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  names.forEach((name, i) => {
+    map.set(name, PALETTE[i % PALETTE.length]!);
+  });
+  return map;
 }

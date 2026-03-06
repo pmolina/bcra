@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import type { Periodo } from '../types/bcra';
 import { formatPeriod } from '../utils/format';
-import { getEntityColor } from '../utils/colors';
+import { buildColorMap } from '../utils/colors';
 
 interface Props {
   periodos: Periodo[];
@@ -212,6 +212,7 @@ export function DebtChart({ periodos }: Props) {
   const entityNames = Array.from(entityTotals.keys()).sort(
     (a, b) => (entityTotals.get(b) ?? 0) - (entityTotals.get(a) ?? 0)
   );
+  const colorMap = buildColorMap(entityNames);
 
   const chartData = sorted.map(p => {
     const row: Record<string, unknown> = { period: formatPeriod(p.periodo) };
@@ -262,7 +263,7 @@ export function DebtChart({ periodos }: Props) {
               key={name}
               dataKey={name}
               stackId="a"
-              fill={getEntityColor(name)}
+              fill={colorMap.get(name)!}
               shape={makeBarShape(name)}
             />
           ))}
@@ -293,7 +294,7 @@ export function DebtChart({ periodos }: Props) {
               >
                 <span
                   className="w-2 h-2 rounded-sm shrink-0"
-                  style={{ backgroundColor: getEntityColor(name) }}
+                  style={{ backgroundColor: colorMap.get(name)! }}
                 />
                 <span className={hidden ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}>
                   {name}
