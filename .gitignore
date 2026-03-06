@@ -21,3 +21,5 @@ dist/
 .vscode/
 *.swp
 *.swo
+.vercel
+.env*.local
