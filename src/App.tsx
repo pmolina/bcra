@@ -108,6 +108,7 @@ export default function App() {
   const [results, setResults] = useState<Map<string, ResultState>>(new Map());
   const [checksResults, setChecksResults] = useState<Map<string, ChequesState>>(new Map());
   const [activeCuits, setActiveCuits] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState<string | undefined>(undefined);
 
   function upsertHistory(cuit: string, denominacion: string | null) {
     setHistory(prev => {
@@ -238,9 +239,9 @@ export default function App() {
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <a href="/" className="text-2xl font-bold text-gray-900 dark:text-white hover:underline">
                 Central de Deudores del BCRA
-              </h1>
+              </a>
               <ApiStatusPill status={apiStatus} />
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -257,7 +258,7 @@ export default function App() {
         </header>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 mb-8">
-          <CUITInput onSubmit={handleSubmit} loading={loading} initialValue={initialInputValue} />
+          <CUITInput onSubmit={handleSubmit} loading={loading} initialValue={initialInputValue} externalValue={inputValue} />
           {history.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-2">
@@ -276,7 +277,7 @@ export default function App() {
                 {history.map(item => (
                   <div key={item.cuit} className="flex items-center gap-1 group">
                     <button
-                      onClick={() => handleSubmit([item.cuit])}
+                      onClick={() => { setInputValue(formatCuit(item.cuit)); handleSubmit([item.cuit]); }}
                       disabled={loading}
                       className="flex-1 flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left min-w-0 disabled:opacity-50"
                     >
