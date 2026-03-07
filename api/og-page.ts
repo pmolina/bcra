@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+export const config = { runtime: 'edge' };
 
 function escapeHtml(s: string): string {
   return s
@@ -25,11 +25,12 @@ function formatMoney(n: number): string {
   return `$${n.toFixed(0)} mil`;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const cuit = req.query.cuit as string | undefined;
+export default async function handler(req: Request) {
+  const url = new URL(req.url);
+  const cuit = url.searchParams.get('cuit');
 
   if (!cuit || !/^\d{11}$/.test(cuit)) {
-    return res.status(400).send('Invalid CUIT');
+    return new Response('Invalid CUIT', { status: 400 });
   }
 
   let name = `CUIT ${cuit}`;
@@ -91,7 +92,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 </body>
 </html>`;
 
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
-  return res.send(html);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+    },
+  });
 }
