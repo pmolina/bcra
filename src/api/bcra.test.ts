@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchDebtHistory, fetchRejectedChecks, NotFoundError } from './bcra';
+import { fetchDebtHistory, fetchRejectedChecks, fetchExtraData, NotFoundError } from './bcra';
 
 const mockFetch = vi.fn();
 beforeEach(() => {
@@ -39,5 +39,27 @@ describe('fetchRejectedChecks', () => {
   it('throws NotFoundError on 404', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
     await expect(fetchRejectedChecks('20123456783')).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe('fetchExtraData', () => {
+  it('returns actividad and provincia on success', async () => {
+    const body = { actividad: 'Comercio minorista', provincia: 'Buenos Aires' };
+    mockFetch.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    const result = await fetchExtraData('20123456783');
+    expect(result).toEqual(body);
+    expect(mockFetch).toHaveBeenCalledWith('/api/extra-data?cuit=20123456783');
+  });
+
+  it('returns null fields when entity has no data', async () => {
+    const body = { actividad: null, provincia: null };
+    mockFetch.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    const result = await fetchExtraData('20123456783');
+    expect(result).toEqual({ actividad: null, provincia: null });
+  });
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 502 });
+    await expect(fetchExtraData('20123456783')).rejects.toThrow('Error 502');
   });
 });

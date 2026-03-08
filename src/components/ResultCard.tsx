@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ResultState, ChequesState, NosisState } from '../types/bcra';
+import type { ResultState, ChequesState, ExtraDataState } from '../types/bcra';
 import { DebtChart } from './DebtChart';
 import { ChecksTable } from './ChecksTable';
 
@@ -33,7 +33,7 @@ interface Props {
   cuit: string;
   state: ResultState;
   checksState: ChequesState;
-  nosisState: NosisState;
+  extraDataState: ExtraDataState;
 }
 
 function formatCuit(cuit: string): string {
@@ -54,7 +54,7 @@ function Spinner() {
   );
 }
 
-export function ResultCard({ cuit, state, checksState, nosisState }: Props) {
+export function ResultCard({ cuit, state, checksState, extraDataState }: Props) {
   const [tab, setTab] = useState<Tab>('deudas');
   const [copied, setCopied] = useState(false);
 
@@ -139,23 +139,23 @@ export function ResultCard({ cuit, state, checksState, nosisState }: Props) {
         </div>
       </div>
 
-      {/* Nosis info */}
-      {nosisState.status === 'loading' && (
+      {/* Extra data */}
+      {extraDataState.status === 'loading' && (
         <p className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 italic border-b border-gray-100 dark:border-gray-700">Obteniendo información adicional...</p>
       )}
-      {nosisState.status === 'idle' && (
+      {extraDataState.status === 'idle' && (
         <p className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">Sin información adicional.</p>
       )}
-      {nosisState.status === 'success' && (nosisState.data.actividad || nosisState.data.provincia) && (
+      {extraDataState.status === 'success' && (extraDataState.data.actividad || extraDataState.data.provincia) && (
         <div className="px-4 py-2 flex flex-col gap-y-0.5 border-b border-gray-100 dark:border-gray-700">
-          {nosisState.data.provincia && (
+          {extraDataState.data.provincia && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              <span className="font-bold">Provincia: </span>{nosisState.data.provincia}
+              <span className="font-bold">Provincia: </span>{extraDataState.data.provincia}
             </span>
           )}
-          {nosisState.data.actividad && (
+          {extraDataState.data.actividad && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              <span className="font-bold">Actividad: </span>{nosisState.data.actividad}
+              <span className="font-bold">Actividad: </span>{extraDataState.data.actividad}
             </span>
           )}
         </div>

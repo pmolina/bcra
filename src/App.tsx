@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { ResultState, ChequesState, NosisState } from './types/bcra';
-import { fetchDebtHistory, fetchRejectedChecks, fetchNosisInfo, NotFoundError } from './api/bcra';
+import type { ResultState, ChequesState, ExtraDataState } from './types/bcra';
+import { fetchDebtHistory, fetchRejectedChecks, fetchExtraData, NotFoundError } from './api/bcra';
 import { CUITInput } from './components/CUITInput';
 import { ResultCard } from './components/ResultCard';
 
@@ -107,7 +107,7 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>(loadHistory);
   const [results, setResults] = useState<Map<string, ResultState>>(new Map());
   const [checksResults, setChecksResults] = useState<Map<string, ChequesState>>(new Map());
-  const [nosisResults, setNosisResults] = useState<Map<string, NosisState>>(new Map());
+  const [extraDataResults, setExtraDataResults] = useState<Map<string, ExtraDataState>>(new Map());
   const [activeCuits, setActiveCuits] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState<string | undefined>(undefined);
 
@@ -197,7 +197,7 @@ export default function App() {
 
     setResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
     setChecksResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
-    setNosisResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
+    setExtraDataResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
 
     // Fetch debt history and rejected checks first
     const [debtSettled, checksSettled] = await Promise.all([
@@ -212,13 +212,13 @@ export default function App() {
       )
     );
 
-    // Only call Nosis for CUITs that exist in BCRA; mark the rest as idle immediately
+    // Only fetch extra data for CUITs that exist in BCRA; mark the rest as idle immediately
     const validCuits = cuits.filter(c => !notFoundCuits.has(c));
-    setNosisResults(new Map(cuits.map(c => [c, notFoundCuits.has(c) ? { status: 'idle' } : { status: 'loading' }])));
-    Promise.allSettled(validCuits.map(c => fetchNosisInfo(c))).then(nosisSettled => {
-      setNosisResults(prev => {
+    setExtraDataResults(new Map(cuits.map(c => [c, notFoundCuits.has(c) ? { status: 'idle' } : { status: 'loading' }])));
+    Promise.allSettled(validCuits.map(c => fetchExtraData(c))).then(extraDataSettled => {
+      setExtraDataResults(prev => {
         const next = new Map(prev);
-        nosisSettled.forEach((result, i) => {
+        extraDataSettled.forEach((result, i) => {
           const cuit = validCuits[i]!;
           next.set(cuit, result.status === 'fulfilled'
             ? { status: 'success', data: result.value }
@@ -366,7 +366,7 @@ export default function App() {
                 cuit={cuit}
                 state={results.get(cuit) ?? { status: 'loading' }}
                 checksState={checksResults.get(cuit) ?? { status: 'loading' }}
-                nosisState={nosisResults.get(cuit) ?? { status: 'loading' }}
+                extraDataState={extraDataResults.get(cuit) ?? { status: 'loading' }}
               />
             ))}
           </div>

@@ -1,4 +1,4 @@
-import type { BCRAResponse, ChequesResponse, NosisInfo } from '../types/bcra';
+import type { BCRAResponse, ChequesResponse, ExtraDataInfo } from '../types/bcra';
 
 const BASE = 'https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas';
 
@@ -18,8 +18,8 @@ export async function fetchRejectedChecks(cuit: string): Promise<ChequesResponse
   return res.json() as Promise<ChequesResponse>;
 }
 
-export async function fetchNosisInfo(cuit: string): Promise<NosisInfo> {
-  const res = await fetch(`/api/nosis?cuit=${cuit}`);
+export async function fetchExtraData(cuit: string): Promise<ExtraDataInfo> {
+  const res = await fetch(`/api/extra-data?cuit=${cuit}`);
   if (!res.ok) throw new Error(`Error ${res.status}`);
-  return res.json() as Promise<NosisInfo>;
+  return res.json() as Promise<ExtraDataInfo>;
 }

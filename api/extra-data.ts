@@ -27,7 +27,7 @@ export default async function handler(req: Request) {
   });
 
   if (!res.ok) {
-    return new Response('Error fetching Nosis', { status: 502 });
+    return new Response('Error fetching extra data', { status: 502 });
   }
 
   const data = await res.json() as {
