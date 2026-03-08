@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { ResultState, ChequesState } from './types/bcra';
-import { fetchDebtHistory, fetchRejectedChecks, NotFoundError } from './api/bcra';
+import type { ResultState, ChequesState, NosisState } from './types/bcra';
+import { fetchDebtHistory, fetchRejectedChecks, fetchNosisInfo, NotFoundError } from './api/bcra';
 import { CUITInput } from './components/CUITInput';
 import { ResultCard } from './components/ResultCard';
 
@@ -107,6 +107,7 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>(loadHistory);
   const [results, setResults] = useState<Map<string, ResultState>>(new Map());
   const [checksResults, setChecksResults] = useState<Map<string, ChequesState>>(new Map());
+  const [nosisResults, setNosisResults] = useState<Map<string, NosisState>>(new Map());
   const [activeCuits, setActiveCuits] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState<string | undefined>(undefined);
 
@@ -194,12 +195,11 @@ export default function App() {
       window.history.pushState(null, '', newPath);
     }
 
-    const loadingDebt = new Map<string, ResultState>(cuits.map(c => [c, { status: 'loading' }]));
-    const loadingChecks = new Map<string, ChequesState>(cuits.map(c => [c, { status: 'loading' }]));
-    setResults(loadingDebt);
-    setChecksResults(loadingChecks);
+    setResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
+    setChecksResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
+    setNosisResults(new Map(cuits.map(c => [c, { status: 'loading' }])));
 
-    // Fetch debt history and rejected checks in parallel for all CUITs
+    // Fetch debt history and rejected checks first
     const [debtSettled, checksSettled] = await Promise.all([
       Promise.allSettled(cuits.map(c => fetchDebtHistory(c))),
       Promise.allSettled(cuits.map(c => fetchRejectedChecks(c))),
@@ -211,6 +211,22 @@ export default function App() {
         checksSettled[i]?.status === 'rejected' && checksSettled[i].reason instanceof NotFoundError
       )
     );
+
+    // Only call Nosis for CUITs that exist in BCRA; mark the rest as idle immediately
+    const validCuits = cuits.filter(c => !notFoundCuits.has(c));
+    setNosisResults(new Map(cuits.map(c => [c, notFoundCuits.has(c) ? { status: 'idle' } : { status: 'loading' }])));
+    Promise.allSettled(validCuits.map(c => fetchNosisInfo(c))).then(nosisSettled => {
+      setNosisResults(prev => {
+        const next = new Map(prev);
+        nosisSettled.forEach((result, i) => {
+          const cuit = validCuits[i]!;
+          next.set(cuit, result.status === 'fulfilled'
+            ? { status: 'success', data: result.value }
+            : { status: 'idle' });
+        });
+        return next;
+      });
+    });
 
     cuits.forEach((cuit, i) => {
       const debt = debtSettled[i];
@@ -265,6 +281,7 @@ export default function App() {
       });
       return next;
     });
+
   }
 
   return (
@@ -349,6 +366,7 @@ export default function App() {
                 cuit={cuit}
                 state={results.get(cuit) ?? { status: 'loading' }}
                 checksState={checksResults.get(cuit) ?? { status: 'loading' }}
+                nosisState={nosisResults.get(cuit) ?? { status: 'loading' }}
               />
             ))}
           </div>

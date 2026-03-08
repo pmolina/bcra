@@ -68,3 +68,13 @@ export type ChequesState =
   | { status: 'success'; data: ChequesResult }
   | { status: 'error'; message: string }
   | { status: 'empty' };
+
+export interface NosisInfo {
+  actividad: string | null;
+  provincia: string | null;
+}
+
+export type NosisState =
+  | { status: 'loading' }
+  | { status: 'success'; data: NosisInfo }
+  | { status: 'idle' };

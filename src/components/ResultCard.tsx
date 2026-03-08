@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ResultState, ChequesState } from '../types/bcra';
+import type { ResultState, ChequesState, NosisState } from '../types/bcra';
 import { DebtChart } from './DebtChart';
 import { ChecksTable } from './ChecksTable';
 
@@ -33,6 +33,7 @@ interface Props {
   cuit: string;
   state: ResultState;
   checksState: ChequesState;
+  nosisState: NosisState;
 }
 
 function formatCuit(cuit: string): string {
@@ -53,7 +54,7 @@ function Spinner() {
   );
 }
 
-export function ResultCard({ cuit, state, checksState }: Props) {
+export function ResultCard({ cuit, state, checksState, nosisState }: Props) {
   const [tab, setTab] = useState<Tab>('deudas');
   const [copied, setCopied] = useState(false);
 
@@ -94,9 +95,9 @@ export function ResultCard({ cuit, state, checksState }: Props) {
       : null;
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-visible">
+    <div className="relative rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-visible">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2 rounded-t-xl">
+      <div className="px-4 pt-3 pb-3 pr-36 border-b border-gray-100 dark:border-gray-700 rounded-t-xl">
         <div className="min-w-0">
           <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{formatCuit(cuit)}</p>
           {denominacion && (
@@ -104,8 +105,29 @@ export function ResultCard({ cuit, state, checksState }: Props) {
               {denominacion}
             </p>
           )}
+          {nosisState.status === 'loading' && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 italic mt-1">Obteniendo información adicional...</p>
+          )}
+          {nosisState.status === 'idle' && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Sin información adicional.</p>
+          )}
+          {nosisState.status === 'success' && (nosisState.data.actividad || nosisState.data.provincia) && (
+            <div className="flex flex-col gap-y-0.5 mt-1">
+              {nosisState.data.provincia && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="font-bold">Provincia: </span>{nosisState.data.provincia}
+                </span>
+              )}
+              {nosisState.data.actividad && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="font-bold">Actividad: </span>{nosisState.data.actividad}
+                </span>
+              )}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+      </div>
+      <div className="absolute top-3 right-3 flex items-center gap-2">
           {hasIrregularLastPeriod ? (
             <span className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full whitespace-nowrap">
               Situación irregular
@@ -135,7 +157,6 @@ export function ResultCard({ cuit, state, checksState }: Props) {
           >
             {copied ? <CheckIcon /> : <ShareIcon />}
           </button>
-        </div>
       </div>
 
       {/* Tabs */}
