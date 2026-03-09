@@ -20,7 +20,7 @@ Look up the debt history of an Argentine CUIT using the [BCRA Central de Deudore
   - Hover tooltip with per-entity amount, percentage, and situation breakdown
   - On mobile, tap a bar to show a centered tooltip
 - Rejected checks table
-- API status indicator
+- API status indicator — shows "API operativa", "Verificando...", or "API en mantenimiento"; search is disabled while the API is down
 - Clean URL routing — results are available at `/{cuit}/` (e.g. `deudas.ar/30546676427/`); legacy `?cuit=` links redirect automatically
 - Share options — native share sheet on mobile, clipboard copy on desktop, and a WhatsApp button with a pre-filled message in Spanish; opening a shared link pre-fills and runs the query automatically
 - Recent searches history stored in `localStorage`, with quick re-search and per-entry deletion
@@ -57,6 +57,14 @@ Bot      -> /{cuit}/  -> /api/og-page?cuit=X  -> HTML with <meta og:image="/api/
 
 Bot detection is handled at the Vercel routing level via `has` header conditions in `vercel.json` — no middleware or `Vary: User-Agent` needed.
 
+## Tests
+
+```bash
+npm test
+```
+
+Uses [Vitest](https://vitest.dev/) with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) and jsdom. Tests cover API functions, CUIT validation, formatting utilities, and component behaviour (including the disabled state when the API is in maintenance).
+
 ## Build
 
 ```bash
@@ -72,4 +80,4 @@ GET https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas/Historicas/{cuit}
 GET https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas/ChequesRechazados/{cuit}
 ```
 
-Additional entity info (province and economic activity) is fetched via a server-side proxy at `/api/extra-data` to avoid CORS restrictions. Results are cached for 24 hours at the edge. The call is made only for CUITs that exist in the BCRA system, and failures are silently ignored.
+Additional entity info (province and economic activity) is fetched via a server-side proxy at `/api/extra-data` to avoid CORS restrictions. Results are cached for 24 hours at the edge. The call is made only for CUITs where at least one of the two BCRA endpoints returned a successful response (not on 4xx/5xx errors), and failures are silently ignored.

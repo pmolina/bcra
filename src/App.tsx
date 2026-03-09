@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ResultState, ChequesState, ExtraDataState } from './types/bcra';
 import { fetchDebtHistory, fetchRejectedChecks, fetchExtraData, NotFoundError } from './api/bcra';
+import { getExtraDataCuits } from './utils/extraDataCuits';
 import { CUITInput } from './components/CUITInput';
 import { ResultCard } from './components/ResultCard';
 
@@ -54,7 +55,7 @@ function formatCuit(cuit: string): string {
 type ApiStatus = 'checking' | 'ok' | 'error';
 
 function ApiStatusPill({ status }: { status: ApiStatus }) {
-  const label = status === 'checking' ? 'Verificando...' : status === 'ok' ? 'API operativa' : 'API con errores';
+  const label = status === 'checking' ? 'Verificando...' : status === 'ok' ? 'API operativa' : 'API en mantenimiento';
   const dot =
     status === 'checking'
       ? 'bg-yellow-400 animate-pulse'
@@ -212,9 +213,10 @@ export default function App() {
       )
     );
 
-    // Only fetch extra data for CUITs that exist in BCRA; mark the rest as idle immediately
-    const validCuits = cuits.filter(c => !notFoundCuits.has(c));
-    setExtraDataResults(new Map(cuits.map(c => [c, notFoundCuits.has(c) ? { status: 'idle' } : { status: 'loading' }])));
+    // Only fetch extra data for CUITs where at least one BCRA endpoint returned OK
+    const validCuits = getExtraDataCuits(cuits, debtSettled, checksSettled);
+    const validCuitsSet = new Set(validCuits);
+    setExtraDataResults(new Map(cuits.map(c => [c, validCuitsSet.has(c) ? { status: 'loading' } : { status: 'idle' }])));
     Promise.allSettled(validCuits.map(c => fetchExtraData(c))).then(extraDataSettled => {
       setExtraDataResults(prev => {
         const next = new Map(prev);
@@ -309,7 +311,7 @@ export default function App() {
         </header>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 mb-8">
-          <CUITInput onSubmit={handleSubmit} loading={loading} initialValue={initialInputValue} externalValue={inputValue} />
+          <CUITInput onSubmit={handleSubmit} loading={loading} disabled={apiStatus === 'error'} initialValue={initialInputValue} externalValue={inputValue} />
           {history.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-2">
@@ -329,8 +331,8 @@ export default function App() {
                   <div key={item.cuit} className="flex items-center gap-1 group">
                     <button
                       onClick={() => { setInputValue(formatCuit(item.cuit)); handleSubmit([item.cuit]); }}
-                      disabled={loading}
-                      className="flex-1 flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left min-w-0 disabled:opacity-50"
+                      disabled={loading || apiStatus === 'error'}
+                      className="flex-1 flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">
                         {formatCuit(item.cuit)}
